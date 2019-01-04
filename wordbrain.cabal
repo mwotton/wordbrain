@@ -1,0 +1,44 @@
+-- This file has been generated from package.yaml by hpack version 0.28.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 1d7d83b3876baf44860955c245dc3e62c9b3cfcd570402b1ccd5bf6698aab11e
+
+name:           wordbrain
+version:        0.1.0.0
+category:       Web
+homepage:       https://github.com/githubuser/wordbrain#readme
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2019 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+extra-source-files:
+    README.md
+
+library
+  exposed-modules:
+      Wordbrain
+  other-modules:
+      Paths_wordbrain
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+  default-language: Haskell2010
+
+test-suite wordbrain-tests
+  type: exitcode-stdio-1.0
+  main-is: main.hs
+  other-modules:
+      Paths_wordbrain
+  hs-source-dirs:
+      test
+  build-depends:
+      base >=4.7 && <5
+    , hedgehog
+    , hspec
+    , wordbrain
+  default-language: Haskell2010
