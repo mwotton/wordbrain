@@ -16,7 +16,8 @@ dependencies:
 
 library:
   source-dirs:      src
-
+  dependencies:
+    - containers
 tests:
   wordbrain-tests:
     main: main.hs
