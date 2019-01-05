@@ -14,10 +14,15 @@ extra-source-files:
 dependencies:
   - base >= 4.7 && < 5
 
+dependencies:
+  - containers
+  - bytestring-trie
+  - bytestring
+  - base
+
 library:
   source-dirs:      src
-  dependencies:
-    - containers
+
 tests:
   wordbrain-tests:
     main: main.hs
@@ -26,3 +31,5 @@ tests:
       - wordbrain
       - hspec
       - hedgehog
+      - raw-strings-qq
+      - file-embed
