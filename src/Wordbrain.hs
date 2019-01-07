@@ -28,6 +28,18 @@ newtype Grid = Grid { unGrid :: Map Coord Char }
 type Path = NEL.NonEmpty Coord
 
 
+data Result = Result
+  { complete :: [WordPath]
+  , ongoing :: [WordPath]
+  } deriving (Show,Eq)
+
+instance Semigroup Result where
+  r1 <> r2 = Result (complete r1 <> complete r2) (ongoing r1 <> ongoing r2)
+instance Monoid Result where
+  mempty = Result [] []
+
+type WordPath = (Path,String)
+
 -- constraints:
 --   'a-z' plus ' ' only
 -- numbering system from top left corner
@@ -42,18 +54,6 @@ readGrid =
   . filter ((/=' ') . snd)
   . concatMap (\(rownum,row) -> zipWith (\col char -> ((rownum,col),char)) [0..] row)
   . zip [0..] . lines . map toLower
-
-data Result = Result
-  { complete :: [WordPath]
-  , ongoing :: [WordPath]
-  } deriving (Show,Eq)
-
-instance Semigroup Result where
-  r1 <> r2 = Result (complete r1 <> complete r2) (ongoing r1 <> ongoing r2)
-instance Monoid Result where
-  mempty = Result [] []
-
-type WordPath = (Path,String)
 
 extensions :: Dict -> Grid -> WordPath -> Result
 extensions dict grid orig@(path, word) =
@@ -75,11 +75,9 @@ blindSteps (x,y) =
         , b <- [y-1,y,y+1]
         , (a,b)/=(x,y)]
 
-
 continuations :: ByteString -> Dict -> (Bool,Bool)
 continuations string = Trie.lookupBy complete string
   where
---    complete :: Maybe a -> Trie a -> (b->b,b->b)
     complete v trie = (isJust v, not (Trie.null trie))
 
 allStartingPoints :: Grid -> [WordPath]
