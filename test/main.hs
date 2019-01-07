@@ -118,3 +118,18 @@ i k l s i t d f|]
     it "solves knight" $ do
       let answers = searcher 8
       fmap snd (complete answers) `shouldSatisfy` ("familiar" `elem`)
+    it "does the current one" $ do
+      let gridstr=[r|
+  gena
+ ralae
+ srlax
+ herttr
+ caedne
+seoviast
+ciopsemm
+serpeloc|]
+      let (Right grid) = readGrid (filter (/=' ') $ dropWhile (=='\n') gridstr)
+      let answers = searchWhile grid littleDict 8
+      putStr $ unlines (nub $ sort (fmap snd (complete answers)))
+
+-- 8,6,8,7,8,6,7

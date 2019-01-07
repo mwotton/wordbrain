@@ -13,12 +13,13 @@ import Data.Trie.BigEndianPatricia.Base(Trie)
 import qualified Data.Trie.BigEndianPatricia.Base as Trie
 import Data.Set(Set)
 import Data.ByteString(ByteString)
-import Data.Maybe(isJust, catMaybes)
+import Data.Maybe(isJust, catMaybes,mapMaybe)
 import Prelude hiding(lookup,null)
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.ByteString.Char8 as BS8
 import Data.List(tails,group)
 import Dict(mkDict,Dict)
+import Data.Ord(Down(..))
 
 dotrace label s = trace (label <> ": " <> show s) s
 
@@ -62,7 +63,10 @@ extensions dict grid orig@(path, word) =
       let (complete,ongoing) = continuations (BS8.pack w) dict
       in Result (if complete then [wp] else [])
                 (if ongoing  then [wp] else []))
-  . map (\(coord,ch) -> (path <> pure coord, word <> [ch]))
+  . mapMaybe (\(coord,ch) ->
+                if coord `elem` path
+                then Nothing
+                else Just $ (path <> pure coord, word <> [ch]))
   $ step grid (NEL.last path)
 
 step :: Grid -> Coord -> [(Coord,Char)]
@@ -93,8 +97,23 @@ searchWhile grid dict wordLen =
       in Result (filter ((==wordLen) . length . fst) (complete r <> complete rNext))
                 (filter ((<wordLen) . length . fst) (ongoing rNext))
 
-
 fixpoint :: Eq a => (a -> a) -> a -> a
 fixpoint f = head . head
              . dropWhile  ((/=1) . length . group)
              . map (take 2) . tails . iterate f
+
+-- this is a little subtle: we want to delete elements from the top, so that we don't
+-- accidentally cascade boxes that we were going to remove. This isn't particularly efficient -
+-- we will quite often move elements multiple times, but we don't expect this operation to be
+-- tremendously common so it just doesn't matter.
+deletePath :: Grid -> Path -> Grid
+deletePath grid = foldl cascadingDelete grid . NEL.sortWith (Down . fst)
+
+-- shuffle downwards until we hit an empty box. we expect grids to be compact vertically
+-- (which is a property we should check on creation) so the first miss indicates that we are done.
+cascadingDelete :: Grid -> Coord -> Grid
+cascadingDelete grid coord = go grid coord (oneHigher coord)
+  where
+    go :: Grid -> Coord -> Coord -> Grid
+    go grid last next = maybe grid (\val -> go (Grid $ M.insert last val (unGrid grid)) next (oneHigher next)) $ M.lookup next (unGrid grid)
+    oneHigher (x,y) = (x,y-1)
