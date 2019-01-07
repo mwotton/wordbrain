@@ -19,6 +19,7 @@ dependencies:
   - bytestring-trie
   - bytestring
   - base
+  - file-embed
 
 library:
   source-dirs:      src
@@ -30,6 +31,15 @@ tests:
     dependencies:
       - wordbrain
       - hspec
-      - hedgehog
+      - QuickCheck
       - raw-strings-qq
-      - file-embed
+
+
+benchmarks:
+  wordbrain-bench:
+    main: main.hs
+    source-dirs: [bench]
+    dependencies:
+      - wordbrain
+      - criterion
+      - raw-strings-qq

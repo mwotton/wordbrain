@@ -2,38 +2,41 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
+
 import Test.Hspec
 import Wordbrain
 import qualified Data.Map as Map
 import Data.Either(isLeft)
 import Data.List(nub, sort)
 import Text.RawString.QQ(r)
-import qualified Data.ByteString.Char8 as BS8
-import Data.FileEmbed(embedFile)
+import Test.QuickCheck(property)
+import Control.Monad(forM_)
 import qualified Data.Trie.BigEndianPatricia.Base as Trie
+import qualified Data.Set as Set
+import Dict
 
-realDictStr = $(embedFile "/home/mark/projects/wordbrain/words_alpha.txt")
-realDict = mkDict (BS8.lines realDictStr)
+
+--instance Arbitrary Grid where
+--  arbitrary = do
 
 main = hspec spec
 
 spec = describe "wordbrain" $ do
   describe "readgrid" $ do
     it "happy path" $ do
-      readGrid "abc\ndef\n" `shouldBe` Right (Map.fromList [((0,0),'a'),((0,1),'b'),((0,2),'c'),((1,0),'d'),((1,1),'e'),((1,2),'f')])
+      readGrid "abc\ndef\n" `shouldBe` Right (Grid (Map.fromList [((0,0),'a'),((0,1),'b'),((0,2),'c'),((1,0),'d'),((1,1),'e'),((1,2),'f')]))
 
     it "rejects garbage" $ do
       readGrid "123" `shouldSatisfy` isLeft
     it "downcases" $ do
-      readGrid "abc\ndEf\n" `shouldBe` Right (Map.fromList [((0,0),'a'),((0,1),'b'),((0,2),'c'),((1,0),'d'),((1,1),'e'),((1,2),'f')])
+      readGrid "abc\ndEf\n" `shouldBe` Right (Grid $ Map.fromList [((0,0),'a'),((0,1),'b'),((0,2),'c'),((1,0),'d'),((1,1),'e'),((1,2),'f')])
 
   describe "step" $ do
     it "goes nowhere from a dot" $ do
-      let grid = Map.fromList [((0,0), 'a')]
+      let grid = Grid $ Map.fromList [((0,0), 'a')]
       step grid (0,0) `shouldBe` []
     it "can proceed along a line" $ do
-      let grid = Map.fromList [((0,x),'a') | x <- [0..10]]
+      let grid = Grid $ Map.fromList [((0,x),'a') | x <- [0..10]]
       sort (map fst (step grid (0,3))) `shouldBe` sort [(0,2),(0,4)]
 
   describe "continuations" $ do
@@ -96,12 +99,7 @@ t i h t a t
 b a m i o r|]
     let (Right grid) = readGrid (filter (/=' ') $ dropWhile (=='\n') gridstr)
 
-    it "solves" $ do
-      let answers = searchWhile grid realDict 7
-      fmap snd (complete answers) `shouldSatisfy` ("mittens" `elem`)
-
-    it "solves knight" $ do
-      let gridstr=[r|
+    let gridstrKnight=[r|
 n t e t m n e r
 e b d i r u g a
 r d s m e u a r
@@ -110,7 +108,13 @@ p l i m t r n l
 a p e b e i w i
 l y e e c l m a
 i k l s i t d f|]
-      let (Right grid) = readGrid (filter (/=' ') $ dropWhile (=='\n') gridstr)
-      let answers = searchWhile grid realDict 8
+    let (Right knightgrid) = readGrid (filter (/=' ') $ dropWhile (=='\n') gridstrKnight)
+
+
+    it "solves" $ do
+      let answers = searchWhile grid realDict 7
+      fmap snd (complete answers) `shouldSatisfy` ("mittens" `elem`)
+    let searcher = searchWhile knightgrid realDict
+    it "solves knight" $ do
+      let answers = searcher 8
       fmap snd (complete answers) `shouldSatisfy` ("familiar" `elem`)
-      print answers

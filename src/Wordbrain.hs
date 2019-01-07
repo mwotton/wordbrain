@@ -18,18 +18,15 @@ import Prelude hiding(lookup,null)
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.ByteString.Char8 as BS8
 import Data.List(tails,group)
+import Dict(mkDict,Dict)
 
 dotrace label s = trace (label <> ": " <> show s) s
 
 type Coord = (Int,Int)
-type Grid = Map Coord Char
+newtype Grid = Grid { unGrid :: Map Coord Char }
+  deriving (Show,Eq)
 type Path = NEL.NonEmpty Coord
 
--- dicts are set up in reverse order to avoid constant
--- reversing for lookup purposes.
-type Dict = Trie ()
-
-mkDict = Trie.fromList . map (,())
 
 -- constraints:
 --   'a-z' plus ' ' only
@@ -38,16 +35,13 @@ readGrid :: String -> Either String Grid
 readGrid =
   (\(ok,notOk) ->
      if M.null notOk
-     then Right ok
+     then Right $ Grid ok
      else Left ("bad elements: " <> show notOk))
   . M.partition isAlpha
   . M.fromList
   . filter ((/=' ') . snd)
   . concatMap (\(rownum,row) -> zipWith (\col char -> ((rownum,col),char)) [0..] row)
   . zip [0..] . lines . map toLower
-
-initialPaths :: Grid -> _fo
-initialPaths = undefined
 
 data Result = Result
   { complete :: [WordPath]
@@ -72,11 +66,14 @@ extensions dict grid orig@(path, word) =
   $ step grid (NEL.last path)
 
 step :: Grid -> Coord -> [(Coord,Char)]
-step grid (x,y) =
+step (Grid grid) coord =
   catMaybes $ map (\c -> (c,) <$> M.lookup c grid)
-              [(a,b)| a <- [x-1,x,x+1]
-                    , b <- [y-1,y,y+1]
-                    , (a,b)/=(x,y)]
+              (blindSteps coord)
+
+blindSteps (x,y) =
+  [(a,b)| a <- [x-1,x,x+1]
+        , b <- [y-1,y,y+1]
+        , (a,b)/=(x,y)]
 
 
 continuations :: ByteString -> Dict -> (Bool,Bool)
@@ -86,7 +83,7 @@ continuations string = Trie.lookupBy complete string
     complete v trie = (isJust v, not (Trie.null trie))
 
 allStartingPoints :: Grid -> [WordPath]
-allStartingPoints = map (pure *** pure) . M.toList
+allStartingPoints = map (pure *** pure) . M.toList . unGrid
 
 searchWhile :: Grid -> Dict -> Int -> Result
 searchWhile grid dict wordLen =
